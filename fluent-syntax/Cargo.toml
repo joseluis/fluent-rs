@@ -27,7 +27,6 @@ include = [
 memchr = "2.0"
 serde = { workspace = true, optional = true, features = ["derive"] }
 serde_json = { workspace = true, optional = true }
-thiserror.workspace = true
 
 [dev-dependencies]
 criterion.workspace = true

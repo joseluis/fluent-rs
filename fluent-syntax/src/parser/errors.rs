@@ -1,5 +1,4 @@
-use std::ops::Range;
-use thiserror::Error;
+use core::{fmt, ops::Range};
 
 /// Error containing information about an error encountered by the Fluent Parser.
 ///
@@ -92,8 +91,7 @@ use thiserror::Error;
 /// The information contained in the `ParserError` should allow the tooling
 /// to display rich contextual annotations of the error slice, using
 /// crates such as `annotate-snippers`.
-#[derive(Error, Debug, PartialEq, Eq, Clone)]
-#[error("{}", self.kind)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct ParserError {
     /// Precise location of where the parser encountered the error.
     pub pos: Range<usize>,
@@ -103,6 +101,14 @@ pub struct ParserError {
     /// The type of the error that the parser encountered.
     pub kind: ErrorKind,
 }
+
+impl fmt::Display for ParserError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.kind)
+    }
+}
+
+impl core::error::Error for ParserError {}
 
 macro_rules! error {
     ($kind:expr, $start:expr) => {{
@@ -122,48 +128,82 @@ macro_rules! error {
 }
 
 /// Kind of an error associated with the [`ParserError`].
-#[derive(Error, Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum ErrorKind {
-    #[error("Expected a token starting with \"{0}\"")]
     ExpectedToken(char),
-    #[error("Expected one of \"{range}\"")]
     ExpectedCharRange { range: String },
-    #[error("Expected a message field for \"{entry_id}\"")]
     ExpectedMessageField { entry_id: String },
-    #[error("Expected a term field for \"{entry_id}\"")]
     ExpectedTermField { entry_id: String },
-    #[error("Callee is not allowed here")]
     ForbiddenCallee,
-    #[error("The select expression must have a default variant")]
     MissingDefaultVariant,
-    #[error("Expected a value")]
     MissingValue,
-    #[error("A select expression can only have one default variant")]
     MultipleDefaultVariants,
-    #[error("Message references can't be used as a selector")]
     MessageReferenceAsSelector,
-    #[error("Term references can't be used as a selector")]
     TermReferenceAsSelector,
-    #[error("Message attributes can't be used as a selector")]
     MessageAttributeAsSelector,
-    #[error("Term attributes can't be used as a selector")]
     TermAttributeAsPlaceable,
-    #[error("Unterminated string literal")]
     UnterminatedStringLiteral,
-    #[error("Positional arguments must come before named arguments")]
     PositionalArgumentFollowsNamed,
-    #[error("The \"{0}\" argument appears twice")]
     DuplicatedNamedArgument(String),
-    #[error("Unknown escape sequence")]
     UnknownEscapeSequence(String),
-    #[error("Invalid unicode escape sequence, \"{0}\"")]
     InvalidUnicodeEscapeSequence(String),
-    #[error("Unbalanced closing brace")]
     UnbalancedClosingBrace,
-    #[error("Expected an inline expression")]
     ExpectedInlineExpression,
-    #[error("Expected a simple expression as selector")]
     ExpectedSimpleExpressionAsSelector,
-    #[error("Expected a string or number literal")]
     ExpectedLiteral,
+}
+
+impl fmt::Display for ErrorKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use ErrorKind as K;
+        match self {
+            K::ExpectedToken(ch) => write!(f, "Expected a token starting with \"{}\"", ch),
+            K::ExpectedCharRange { range } => write!(f, "Expected one of \"{}\"", range),
+            K::ExpectedMessageField { entry_id } => {
+                write!(f, "Expected a message field for \"{}\"", entry_id)
+            }
+            K::ExpectedTermField { entry_id } => {
+                write!(f, "Expected a term field for \"{}\"", entry_id)
+            }
+            K::ForbiddenCallee => write!(f, "Callee is not allowed here"),
+            K::MissingDefaultVariant => {
+                write!(f, "The select expression must have a default variant")
+            }
+            K::MissingValue => write!(f, "Expected a value"),
+            K::MultipleDefaultVariants => {
+                write!(f, "A select expression can only have one default variant")
+            }
+            K::MessageReferenceAsSelector => {
+                write!(f, "Message references can't be used as a selector")
+            }
+            K::TermReferenceAsSelector => {
+                write!(f, "Term references can't be used as a selector")
+            }
+            K::MessageAttributeAsSelector => {
+                write!(f, "Message attributes can't be used as a selector")
+            }
+            K::TermAttributeAsPlaceable => {
+                write!(f, "Term attributes can't be used as a selector")
+            }
+            K::UnterminatedStringLiteral => write!(f, "Unterminated string literal"),
+            K::PositionalArgumentFollowsNamed => {
+                write!(f, "Positional arguments must come before named arguments")
+            }
+            K::DuplicatedNamedArgument(arg) => {
+                write!(f, "The \"{}\" argument appears twice", arg)
+            }
+            K::UnknownEscapeSequence(seq) => {
+                write!(f, "Unknown escape sequence: \"{}\"", seq)
+            }
+            K::InvalidUnicodeEscapeSequence(seq) => {
+                write!(f, "Invalid unicode escape sequence: \"{}\"", seq)
+            }
+            K::UnbalancedClosingBrace => write!(f, "Unbalanced closing brace"),
+            K::ExpectedInlineExpression => write!(f, "Expected an inline expression"),
+            K::ExpectedSimpleExpressionAsSelector => {
+                write!(f, "Expected a simple expression as selector")
+            }
+            K::ExpectedLiteral => write!(f, "Expected a string or number literal"),
+        }
+    }
 }
